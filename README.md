@@ -1,14 +1,14 @@
-# 🎯 Eventia Core API
+
 
 **Sistema de Gestión de Eventos con Arquitectura Limpia**
 
-[![CI/CD Pipeline](https://github.com/slopez1023/TallerPractico/actions/workflows/ci.yml/badge.svg)](https://github.com/slopez1023/TallerPractico/actions)
+[![CI/CD Pipeline](https://github.com/slopez1023/TallerPractico/actions/workflows/ci.yml/badge.svg)]https://github.com/VirtualViking/API_eventia.git
 [![Coverage](https://img.shields.io/badge/coverage-50%25-yellow)](./coverage)
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
 ---
 
-## 📋 Tabla de Contenidos
+##  Tabla de Contenidos
 
 - [Descripción General](#-descripción-general)
 - [Arquitectura](#-arquitectura)
@@ -25,38 +25,21 @@
 
 ---
 
-## 🎬 Descripción General
+##  Descripción General
 
 **Eventia Core API** es un backend robusto desarrollado con TypeScript y Node.js que permite gestionar eventos, participantes y registros de asistencia. El sistema está diseñado siguiendo principios de Clean Architecture y Domain-Driven Design (DDD), garantizando un código mantenible, testeable y escalable.
 
 ### Características Principales
 
-✅ **Gestión de Eventos**: Crear, actualizar, consultar y eliminar eventos  
-✅ **Gestión de Participantes**: Administrar participantes del sistema  
-✅ **Control de Asistencia**: Registro de participantes en eventos con validación de cupos  
-✅ **Sistema de Caché**: Redis para optimizar consultas frecuentes  
-✅ **Pruebas Automatizadas**: 46 tests (unitarios, integración y E2E) con 50%+ de cobertura  
-✅ **Análisis de Seguridad**: ESLint con reglas de seguridad  
-✅ **CI/CD**: Pipeline automatizado con GitHub Actions  
+ **Gestión de Eventos**: Crear, actualizar, consultar y eliminar eventos  
+ **Gestión de Participantes**: Administrar participantes del sistema  
+ **Control de Asistencia**: Registro de participantes en eventos con validación de cupos  
+ **Sistema de Caché**: Redis para optimizar consultas frecuentes  
+ **Pruebas Automatizadas**: 46 tests (unitarios, integración y E2E) con 50%+ de cobertura  
+ **Análisis de Seguridad**: ESLint con reglas de seguridad  
+ **CI/CD**: Pipeline automatizado con GitHub Actions  
 
----
 
-## 🏗️ Arquitectura
-
-El proyecto implementa **Clean Architecture** con las siguientes capas:
-
-```
-┌─────────────────────────────────────────┐
-│      Application Layer (API/HTTP)      │
-│  Controllers │ DTOs │ Routes            │
-├─────────────────────────────────────────┤
-│         Domain Layer (Business)         │
-│  Entities │ Services │ Interfaces       │
-├─────────────────────────────────────────┤
-│    Infrastructure Layer (External)      │
-│  Database │ Cache │ Config              │
-└─────────────────────────────────────────┘
-```
 
 ### Principios Aplicados
 
@@ -75,7 +58,7 @@ Se eligió esta arquitectura porque:
 
 ---
 
-## 🛠️ Tecnologías
+##  Tecnologías
 
 ### Backend
 - **Node.js** v20.x - Runtime JavaScript
@@ -105,7 +88,7 @@ Se eligió esta arquitectura porque:
 
 ---
 
-## 📋 Requisitos Previos
+##  Requisitos Previos
 
 Antes de comenzar, asegúrate de tener instalado:
 
@@ -125,12 +108,12 @@ psql --version   # debe mostrar PostgreSQL 17 o superior
 
 ---
 
-## 📦 Instalación
+##  Instalación
 
 ### 1. Clonar el Repositorio
 
 ```bash
-git clone https://github.com/slopez1023/TallerPractico.git
+git clone https://github.com/VirtualViking/API_eventia.git
 cd TallerPractico
 ```
 
@@ -199,7 +182,7 @@ Ejecuta el archivo `src/infrastructure/database/init.sql` en tu cliente PostgreS
 
 ---
 
-## 🚀 Ejecución
+##  Ejecución
 
 ### Modo Desarrollo
 
@@ -246,7 +229,7 @@ Respuesta esperada:
 
 ---
 
-## 🧪 Pruebas
+##  Pruebas
 
 ### Ejecutar Todas las Pruebas
 
@@ -280,16 +263,16 @@ El reporte de cobertura se genera en `coverage/lcov-report/index.html`
 
 ### Resultados Actuales
 
-✅ **46/46 tests pasando (100%)**
+ **46/46 tests pasando (100%)**
 - 26 tests unitarios
 - 6 tests de integración
 - 14 tests E2E
 
-📊 **Cobertura**: 50.73% de líneas, 40.49% de branches
+ **Cobertura**: 50.73% de líneas, 40.49% de branches
 
 ---
 
-## 🔍 Análisis Estático de Seguridad
+##  Análisis Estático de Seguridad
 
 ### ESLint con Reglas de Seguridad
 
@@ -317,7 +300,7 @@ npm run security:check
 
 ---
 
-## 🔄 Pipeline CI/CD
+##  Pipeline CI/CD
 
 ### GitHub Actions Workflow
 
@@ -325,18 +308,18 @@ El proyecto incluye un pipeline automatizado que se ejecuta en cada push o pull 
 
 #### Pasos del Pipeline
 
-1. **📦 Instalar dependencias** (`npm ci`)
-2. **🧪 Ejecutar pruebas unitarias** (`npm run test:unit`)
-3. **🔗 Ejecutar pruebas de integración** (`npm run test:integration`)
-4. **🔍 Análisis estático de seguridad** (`npm run lint`)
-5. **🔒 Auditoría de seguridad** (`npm audit`)
-6. **🌐 Ejecutar pruebas E2E** (`npm run test:e2e`)
+1. ** Instalar dependencias** (`npm ci`)
+2. ** Ejecutar pruebas unitarias** (`npm run test:unit`)
+3. ** Ejecutar pruebas de integración** (`npm run test:integration`)
+4. ** Análisis estático de seguridad** (`npm run lint`)
+5. ** Auditoría de seguridad** (`npm audit`)
+6. ** Ejecutar pruebas E2E** (`npm run test:e2e`)
 
 #### Estado del Pipeline
 
 Si todos los pasos pasan exitosamente, se imprime:
 ```
-✅ OK - All tests and checks passed!
+ OK - All tests and checks passed!
 ```
 
 Si algún paso falla, el pipeline se detiene y marca el estado como `Failed`.
@@ -347,76 +330,8 @@ Visita: `https://github.com/slopez1023/TallerPractico/actions`
 
 ---
 
-## 📁 Estructura del Proyecto
 
-```
-eventia-core-api/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                    # Pipeline CI/CD
-├── src/
-│   ├── application/                  # Capa de Aplicación
-│   │   ├── controllers/             # Controladores HTTP
-│   │   │   ├── EventController.ts
-│   │   │   ├── ParticipantController.ts
-│   │   │   └── AttendanceController.ts
-│   │   ├── dtos/                    # Data Transfer Objects
-│   │   │   ├── EventDTO.ts
-│   │   │   ├── ParticipantDTO.ts
-│   │   │   └── AttendanceDTO.ts
-│   │   └── routes/                  # Definición de rutas
-│   │       ├── eventRoutes.ts
-│   │       ├── participantRoutes.ts
-│   │       └── attendanceRoutes.ts
-│   ├── domain/                       # Capa de Dominio
-│   │   ├── entities/                # Entidades del dominio
-│   │   │   ├── Event.ts
-│   │   │   ├── Participant.ts
-│   │   │   └── Attendance.ts
-│   │   ├── interfaces/              # Contratos (interfaces)
-│   │   │   ├── IEventRepository.ts
-│   │   │   ├── IParticipantRepository.ts
-│   │   │   └── IAttendanceRepository.ts
-│   │   └── services/                # Lógica de negocio
-│   │       ├── EventService.ts
-│   │       ├── ParticipantService.ts
-│   │       └── AttendanceService.ts
-│   ├── infrastructure/               # Capa de Infraestructura
-│   │   ├── cache/                   # Sistema de caché
-│   │   │   └── CacheService.ts
-│   │   ├── config/                  # Configuración
-│   │   │   ├── database.ts
-│   │   │   └── cache.ts
-│   │   └── database/                # Acceso a datos
-│   │       ├── init.sql             # Script de inicialización
-│   │       ├── models/              # Modelos de BD
-│   │       │   ├── EventModel.ts
-│   │       │   ├── ParticipantModel.ts
-│   │       │   └── AttendanceModel.ts
-│   │       └── repositories/        # Implementaciones
-│   │           ├── EventRepository.ts
-│   │           ├── ParticipantRepository.ts
-│   │           └── AttendanceRepository.ts
-│   └── index.ts                     # Punto de entrada
-├── tests/
-│   ├── unit/                        # Pruebas unitarias
-│   │   └── services/
-│   ├── integration/                 # Pruebas de integración
-│   │   └── events.test.ts
-│   └── e2e/                         # Pruebas end-to-end
-│       └── api.test.ts
-├── .env.example                     # Plantilla de variables
-├── .eslintrc.json                   # Configuración ESLint
-├── eslint.config.mjs                # Configuración ESLint v9
-├── jest.config.js                   # Configuración Jest
-├── tsconfig.json                    # Configuración TypeScript
-├── package.json                     # Dependencias y scripts
-└── README.md                        # Este archivo
-```
-
----
-
-## 🌐 API Endpoints
+##  API Endpoints
 
 ### Base URL
 
@@ -477,33 +392,10 @@ curl -X POST http://localhost:3000/api/v1/attendances \
     "eventId": "uuid-del-evento",
     "participantId": "uuid-del-participante"
   }'
-```
-
+``
 ---
 
-## 🔐 Seguridad
-
-### Medidas Implementadas
-
-1. **Análisis Estático**: ESLint con reglas de seguridad
-2. **Validación de Datos**: DTOs validan entrada del usuario
-3. **Sanitización**: Prevención de inyección SQL con queries parametrizadas
-4. **Variables de Entorno**: Credenciales no están en el código
-5. **Auditoría de Dependencias**: npm audit en CI/CD
-
-### Recomendaciones para Producción
-
-- ✅ Usar HTTPS (TLS/SSL)
-- ✅ Implementar rate limiting
-- ✅ Agregar autenticación (JWT)
-- ✅ Configurar CORS apropiadamente
-- ✅ Usar Redis en lugar de caché en memoria
-- ✅ Implementar logging estructurado
-- ✅ Monitoreo y alertas
-
----
-
-## 👨‍💻 Desarrollo
+## Desarrollo
 
 ### Scripts Disponibles
 
@@ -524,11 +416,6 @@ npm run db:setup     # Configurar base de datos
 3. Commit: `git commit -m 'Agregar nueva funcionalidad'`
 4. Push: `git push origin feature/nueva-funcionalidad`
 5. Abre un Pull Request
-
-
-## 👥 Autor
-
-Desarrollado por Santiago Cardona López como taller práctico de la materia de Pruebas.
 
 ---
 
