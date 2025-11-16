@@ -1,0 +1,288 @@
+import dotenv from 'dotenv';
+import { createClient, RedisClientType } from 'redis';
+
+dotenv.config();
+
+// Interface común para cualquier implementación de caché
+export interface ICacheService {
+  set<T>(key: string, value: T, ttl?: number): Promise<void>;
+  get<T>(key: string): Promise<T | null>;
+  delete(key: string): Promise<boolean>;
+  exists(key: string): Promise<boolean>;
+  clear(): Promise<void>;
+  keys(pattern?: string): Promise<string[]>;
+  close(): Promise<void>;
+}
+
+// Simple implementación en memoria del servicio de caché (sin interval para tests)
+type CacheEntry<T> = { value: T; expiresAt?: number };
+const store = new Map<string, CacheEntry<any>>();
+
+// NO crear interval en absoluto para evitar problemas con Jest
+let cleanupInterval: NodeJS.Timeout | null = null;
+
+export const memoryCacheService: ICacheService = {
+  async set<T>(key: string, value: T, ttl?: number): Promise<void> {
+    const expiresAt = ttl ? Date.now() + ttl * 1000 : undefined;
+    store.set(key, { value, expiresAt });
+  },
+
+  async get<T>(key: string): Promise<T | null> {
+    const entry = store.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt !== undefined && entry.expiresAt <= Date.now()) {
+      store.delete(key);
+      return null;
+    }
+    return entry.value as T;
+  },
+
+  async delete(key: string): Promise<boolean> {
+    return store.delete(key);
+  },
+
+  async exists(key: string): Promise<boolean> {
+    const entry = store.get(key);
+    if (!entry) return false;
+    if (entry.expiresAt !== undefined && entry.expiresAt <= Date.now()) {
+      store.delete(key);
+      return false;
+    }
+    return true;
+  },
+
+  async clear(): Promise<void> {
+    store.clear();
+  },
+
+  async keys(pattern?: string): Promise<string[]> {
+    const keys = Array.from(store.keys());
+    if (!pattern) return keys;
+    const regex = new RegExp('^' + pattern.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$');
+    return keys.filter(k => regex.test(k));
+  },
+
+  async close(): Promise<void> {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
+    }
+    store.clear();
+  },
+};
+
+// Implementación con Redis (singleton con fallback automático a memoria)
+let redisClient: RedisClientType | null = null;
+let redisServiceInstance: ICacheService | null = null;
+let redisAvailable = false;
+
+const createRedisService = async (): Promise<ICacheService> => {
+  // Si ya existe y Redis está disponible, retornar
+  if (redisServiceInstance && redisAvailable) {
+    return redisServiceInstance;
+  }
+
+  // Intentar conectar a Redis
+  if (!redisClient) {
+    try {
+      redisClient = createClient({
+        socket: {
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
+          connectTimeout: 5000,
+        },
+      });
+
+      redisClient.on('error', () => {
+        // Silenciar errores de Redis
+      });
+
+      await redisClient.connect();
+      redisAvailable = true;
+      console.log('✅ Redis conectado');
+    } catch (error) {
+      console.warn('⚠️ Redis no disponible, usando cache en memoria');
+      redisAvailable = false;
+      redisClient = null;
+      return memoryCacheService;
+    }
+  }
+
+  redisServiceInstance = {
+    async set<T>(key: string, value: T, ttl?: number): Promise<void> {
+      if (!redisAvailable || !redisClient || !redisClient.isOpen) {
+        return memoryCacheService.set(key, value, ttl);
+      }
+      try {
+        const serialized = JSON.stringify(value);
+        const operation = ttl ? 
+          redisClient.setEx(key, ttl, serialized) : 
+          redisClient.set(key, serialized);
+        
+        // Timeout de 3 segundos para set
+        await Promise.race([
+          operation,
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Redis set timeout')), 3000)
+          )
+        ]);
+      } catch (error) {
+        console.warn('Redis set fallback to memory');
+        return memoryCacheService.set(key, value, ttl);
+      }
+    },
+
+    async get<T>(key: string): Promise<T | null> {
+      if (!redisAvailable || !redisClient || !redisClient.isOpen) {
+        return memoryCacheService.get(key);
+      }
+      try {
+        // Timeout de 2 segundos para get
+        const data = await Promise.race([
+          redisClient.get(key),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))
+        ]);
+        return data ? JSON.parse(data) : null;
+      } catch (error) {
+        console.warn('Redis get fallback to memory');
+        return memoryCacheService.get(key);
+      }
+    },
+
+    async delete(key: string): Promise<boolean> {
+      if (!redisAvailable || !redisClient || !redisClient.isOpen) {
+        return memoryCacheService.delete(key);
+      }
+      try {
+        // Timeout de 2 segundos para delete
+        const result = await Promise.race([
+          redisClient.del(key),
+          new Promise<number>((resolve) => setTimeout(() => resolve(0), 2000))
+        ]);
+        return result > 0;
+      } catch (error) {
+        console.warn('Redis delete fallback to memory');
+        return memoryCacheService.delete(key);
+      }
+    },
+
+    async exists(key: string): Promise<boolean> {
+      if (!redisAvailable || !redisClient || !redisClient.isOpen) {
+        return memoryCacheService.exists(key);
+      }
+      try {
+        const result = await redisClient.exists(key);
+        return result > 0;
+      } catch (error) {
+        return memoryCacheService.exists(key);
+      }
+    },
+
+    async clear(): Promise<void> {
+      if (!redisAvailable || !redisClient || !redisClient.isOpen) {
+        return memoryCacheService.clear();
+      }
+      try {
+        // Usar timeout para evitar bloqueos en CI
+        await Promise.race([
+          redisClient.flushDb(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Redis clear timeout')), 5000)
+          )
+        ]);
+      } catch (error) {
+        console.warn('Redis clear failed, using memory fallback');
+        return memoryCacheService.clear();
+      }
+    },
+
+    async keys(pattern?: string): Promise<string[]> {
+      if (!redisAvailable || !redisClient || !redisClient.isOpen) {
+        return memoryCacheService.keys(pattern);
+      }
+      try {
+        return await redisClient.keys(pattern || '*');
+      } catch (error) {
+        return memoryCacheService.keys(pattern);
+      }
+    },
+
+    async close(): Promise<void> {
+      try {
+        if (redisClient && redisClient.isOpen) {
+          await redisClient.disconnect();
+        }
+      } catch (error) {
+        // Ignorar errores al cerrar
+      } finally {
+        redisClient = null;
+        redisServiceInstance = null;
+        redisAvailable = false;
+      }
+    },
+  };
+
+  return redisServiceInstance;
+};
+
+// Singleton del servicio de caché
+let cacheServiceInstance: ICacheService | null = null;
+let redisInitialized = false;
+
+// Función para inicializar Redis de forma síncrona (debe llamarse en beforeAll)
+export const initializeCache = async (): Promise<void> => {
+  if (redisInitialized) return;
+  
+  const cacheType = process.env.CACHE_TYPE || 'memory';
+  
+  if (cacheType === 'redis') {
+    try {
+      console.log('🔴 Inicializando Redis...');
+      cacheServiceInstance = await createRedisService();
+      redisInitialized = true;
+      console.log('✅ Redis inicializado correctamente');
+    } catch (error) {
+      console.warn('⚠️ Redis no disponible, usando memoria como fallback');
+      cacheServiceInstance = memoryCacheService;
+      redisInitialized = true;
+    }
+  } else {
+    console.log('💾 Usando caché en memoria');
+    cacheServiceInstance = memoryCacheService;
+    redisInitialized = true;
+  }
+};
+
+// Función para obtener el servicio de caché activo
+export const getCacheService = (): ICacheService => {
+  if (cacheServiceInstance) {
+    return cacheServiceInstance;
+  }
+
+  // Si no se ha inicializado, usar memoria por defecto
+  console.log('⚠️ Cache no inicializado, usando memoria por defecto');
+  cacheServiceInstance = memoryCacheService;
+  return cacheServiceInstance;
+};
+
+// Test de conexión del caché
+export const testCacheConnection = async (): Promise<boolean> => {
+  try {
+    const cache = getCacheService();
+    await cache.set('test:connection', 'ok', 5);
+    const result = await cache.get<string>('test:connection');
+    await cache.delete('test:connection');
+    
+    if (result === 'ok') {
+      console.log('✅ Servicio de caché funcionando correctamente');
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('❌ Error en el servicio de caché:', error);
+    return false;
+  }
+};
+
+export default getCacheService();

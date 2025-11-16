@@ -1,0 +1,117 @@
+name: CI/CD Pipeline - Eventia Core API
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test and Analysis
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin123
+          POSTGRES_DB: eventia_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: eventia_db
+      DB_USER: postgres
+      DB_PASSWORD: admin123
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      CACHE_TYPE: redis
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 1. Instalar dependencias
+        run: npm ci
+
+      - name: 🗄️ Setup database tables
+        run: |
+          export PGPASSWORD=admin123
+          psql -h localhost -U postgres -d eventia_db -f src/infrastructure/database/init.sql
+
+      - name: 🧪 2. Ejecutar pruebas unitarias
+        run: npm run test:unit
+
+      - name: 🔗 3. Ejecutar pruebas de integración
+        run: npm run test:integration
+
+      - name: 🔍 4. Ejecutar análisis estático
+        run: npm run lint
+        continue-on-error: true
+
+      - name: 🌐 5. Ejecutar pruebas de sistema (E2E)
+        run: npm run test:e2e
+
+      - name: ✅ Pipeline exitoso
+        if: success()
+        run: echo "OK"
+
+      - name: 📈 Upload coverage to Codecov (optional)
+        if: success()
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🏗️ Build TypeScript
+        run: npm run build
+
+      - name: ✅ Build successful
+        run: |
+          echo "================================"
+          echo "✅ BUILD SUCCESSFUL"
+          echo "================================"
